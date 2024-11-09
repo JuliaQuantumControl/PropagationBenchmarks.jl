@@ -91,7 +91,7 @@ QuantumPropagators.disable_timings();
 
 size_runtime_data = merge(size_trial_data, size_timing_data)
 
-plot_size_runtime(size_runtime_data) do row
+plot_size_runtime(size_runtime_data; csv = datadir("cheby_inplace_dense_runtime_size_{key}.csv")) do row
     if row[:cheby_coeffs_limit] == 1e-15
         return :high
     elseif row[:cheby_coeffs_limit] == 1e-8
@@ -208,7 +208,7 @@ scaling_data
 plot_scaling(
     scaling_data;
     plot_title = "Scaling for Cheby",
-    csv = datadir("cheby_scaling_{highlow}.csv")
+    csv = datadir("cheby_scaling_{key}.csv")
 ) do row
     if row[:cheby_coeffs_limit] == 1e-15
         return :high

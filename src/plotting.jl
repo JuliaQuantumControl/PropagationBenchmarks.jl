@@ -107,20 +107,22 @@ end
 
 
 function plot_size_runtime(classifier, collected_data, unit = :s; csv = nothing, kwargs...)
-    # The `classifier` is a function that returns either :high or :low for a
-    # given row.
-    keys = (:high, :low)
-    plot_data = Dict(
-        key => Dict(
-            :N => Int64[],
-            :runtime_min => Float64[],
-            :runtime_max => Float64[],
-            :runtime_median => Float64[],
-        ) for key in keys
-    )
+    keys = Symbol[]
+    plot_data = Dict{Symbol, Dict{Symbol,Any}}()
     for row in collected_data
         key = classifier(row)
-        @assert key ∈ keys
+        if isnothing(key)
+            continue
+        end
+        if !haskey(plot_data, key)
+            plot_data[key] = Dict(
+                :N => Int64[],
+                :runtime_min => Float64[],
+                :runtime_max => Float64[],
+                :runtime_median => Float64[],
+            )
+            push!(keys, key)
+        end
         push!(plot_data[key][:N], row[:N])
         push!(
             plot_data[key][:runtime_min],
@@ -151,14 +153,14 @@ function plot_size_runtime(classifier, collected_data, unit = :s; csv = nothing,
             marker = true,
         )
         if !isnothing(csv)
-            @assert contains(csv, "{highlow}")
-            csvfile = replace(csv, "{highlow}" => string(highlow))
+            @assert contains(csv, "{key}")
+            csvfile = replace(csv, "{key}" => string(key))
             write_csv(
                 csvfile,
                 OrderedDict(
                     "precision" => x_vals,
-                    "min runtime ($unit)" => plot_data[N][:runtime_min] / u,
-                    "max runtime ($unit)" => plot_data[N][:runtime_max] / u,
+                    "min runtime ($unit)" => plot_data[key][:runtime_min] / u,
+                    "max runtime ($unit)" => plot_data[key][:runtime_max] / u,
                     "median runtime ($unit)" => y_median,
                 )
             )
@@ -171,13 +173,14 @@ end
 
 
 function plot_scaling(classifier, scaling_data; csv = nothing, kwargs...)
-    # The `classifier` is a function that returns either :high or :low for a
-    # given row.
-    plot_data = Dict(
-        :high => Dict(:mvp_per_timestep => Float64[], :spectral_envelope => Float64[]),
-        :low => Dict(:mvp_per_timestep => Float64[], :spectral_envelope => Float64[]),
-    )
+    keys = Symbol[]
+    plot_data = Dict{Symbol, Dict{Symbol,Any}}()
     for row in scaling_data
+        key = classifier(row)
+        if !haskey(plot_data, key)
+            plot_data[key] = Dict(:mvp_per_timestep => Float64[], :spectral_envelope => Float64[])
+            push!(keys, key)
+        end
         push!(
             plot_data[classifier(row)][:mvp_per_timestep],
             row[:matrix_vector_products] / row[:timesteps]
@@ -185,40 +188,31 @@ function plot_scaling(classifier, scaling_data; csv = nothing, kwargs...)
         push!(plot_data[classifier(row)][:spectral_envelope], row[:spectral_envelope])
     end
     if !isnothing(csv)
-        @assert contains(csv, "{highlow}")
-        for highlow in [:high, :low]
-            csvfile = replace(csv, "{highlow}" => string(highlow))
+        @assert contains(csv, "{key}")
+        for key in keys
+            csvfile = replace(csv, "{key}" => string(key))
             write_csv(
                 csvfile,
                 OrderedDict(
-                    "spectral envelope" => plot_data[highlow][:spectral_envelope],
-                    "MVP per timestep" => plot_data[highlow][:mvp_per_timestep],
+                    "spectral envelope" => plot_data[key][:spectral_envelope],
+                    "MVP per timestep" => plot_data[key][:mvp_per_timestep],
                 )
             )
             @info "Written $csvfile"
         end
     end
-    fig = plot(
-        plot_data[:high][:spectral_envelope],
-        plot_data[:high][:mvp_per_timestep],
-        label = "high precision",
-        marker = true
-    )
-    plot!(
-        fig,
-        plot_data[:low][:spectral_envelope],
-        plot_data[:low][:mvp_per_timestep],
-        label = "low precision",
-        marker = true
-    )
+    fig = plot(; xlabel = "spectral envelope", ylabel = "MVP per timestep")
+    for key in keys
+        plot!(
+            fig,
+            plot_data[key][:spectral_envelope],
+            plot_data[key][:mvp_per_timestep],
+            label = "$key precision",
+            marker = true
+        )
+    end
     ymax = ylims(fig)[end]
-    plot!(
-        fig;
-        xlabel = "spectral envelope",
-        ylabel = "MVP per timestep",
-        ylim = (0, ymax),
-        kwargs...
-    )
+    plot!(fig; ylim = (0, ymax), kwargs...)
 end
 
 
