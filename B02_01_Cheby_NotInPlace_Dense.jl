@@ -37,7 +37,7 @@ PropagationBenchmarks.info()
 
 # +
 projectdir(path...) = joinpath(@__DIR__, path...)
-datadir(path...) = projectdir("data", "A02_01_Cheby_NotInPlace_Dense", path...)
+datadir(path...) = projectdir("data", "B02_01_Cheby_NotInPlace_Dense", path...)
 mkpath(datadir())
 
 SYSTEMS_CACHE = Dict();
