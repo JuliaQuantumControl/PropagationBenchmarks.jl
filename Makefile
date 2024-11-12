@@ -1,9 +1,11 @@
-.PHONY: help ipynb devrepl jupyter-lab clean distclean
+.PHONY: help init ipynb devrepl jupyter-lab clean distclean
 
 .DEFAULT_GOAL := help
 
 NOTEBOOKFILES = \
-    A01_01_Cheby_InPlace_Dense.ipynb
+    A01_01_Cheby_InPlace_Dense.ipynb \
+    A02_01_Cheby_NotInPlace_Dense.ipynb \
+    A03_01_ExpProp_InPlace_Dense.ipynb
 
 JULIA = julia
 
@@ -18,6 +20,8 @@ help:   ## Show this help
 Manifest.toml: Project.toml
 	$(JULIA)  --project=. -e 'using Pkg; Pkg.instantiate()'
 	touch $@
+
+init: Manifest.toml  ## Initialize the environment
 
 ipynb: Manifest.toml $(NOTEBOOKFILES)  ## Create all missing .ipynb files
 

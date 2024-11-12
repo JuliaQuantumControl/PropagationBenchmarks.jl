@@ -71,4 +71,3 @@ function generate_timing_data(system, exact_solution; kwargs...)
         :percent => percent
     )
 end
-# TODO: rename, documentation

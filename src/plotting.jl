@@ -106,24 +106,34 @@ function plot_prec_runtimes(
 end
 
 
-function plot_size_runtime(classifier, collected_data, unit = :s; csv = nothing, kwargs...)
+function plot_runtime(
+    classifier,
+    collected_data;
+    x,
+    xlabel,
+    label = "",
+    unit = :s,
+    csv = nothing,
+    kwargs...
+)
     keys = Symbol[]
-    plot_data = Dict{Symbol, Dict{Symbol,Any}}()
+    plot_data = Dict{Symbol,Dict{Symbol,Any}}()
     for row in collected_data
         key = classifier(row)
         if isnothing(key)
             continue
         end
+        x_val = row[x]
         if !haskey(plot_data, key)
             plot_data[key] = Dict(
-                :N => Int64[],
+                :x => Vector{eltype(x)}(),
                 :runtime_min => Float64[],
                 :runtime_max => Float64[],
                 :runtime_median => Float64[],
             )
             push!(keys, key)
         end
-        push!(plot_data[key][:N], row[:N])
+        push!(plot_data[key][:x], x_val)
         push!(
             plot_data[key][:runtime_min],
             minimum(row[:propagate].times * Units.eval(:ns))
@@ -137,10 +147,10 @@ function plot_size_runtime(classifier, collected_data, unit = :s; csv = nothing,
             median(row[:propagate].times * Units.eval(:ns))
         )
     end
-    fig = plot(; xlabel = "system size", ylabel = "runtime ($unit)")
+    fig = plot(; xlabel, ylabel = "runtime ($unit)")
     u = Units.eval(unit)
     for key in keys
-        x_vals = plot_data[key][:N]
+        x_vals = plot_data[key][:x]
         y_median = plot_data[key][:runtime_median] / u
         y_mindist = y_median - plot_data[key][:runtime_min] / u
         y_maxdist = plot_data[key][:runtime_max] / Units.eval(unit) - y_median
@@ -149,7 +159,7 @@ function plot_size_runtime(classifier, collected_data, unit = :s; csv = nothing,
             x_vals,
             y_median;
             yerror = (y_mindist, y_maxdist),
-            label = "$key precision",
+            label = replace(label, "{key}" => key),
             marker = true,
         )
         if !isnothing(csv)
@@ -158,7 +168,7 @@ function plot_size_runtime(classifier, collected_data, unit = :s; csv = nothing,
             write_csv(
                 csvfile,
                 OrderedDict(
-                    "precision" => x_vals,
+                    xlabel => x_vals,
                     "min runtime ($unit)" => plot_data[key][:runtime_min] / u,
                     "max runtime ($unit)" => plot_data[key][:runtime_max] / u,
                     "median runtime ($unit)" => y_median,
@@ -172,13 +182,35 @@ function plot_size_runtime(classifier, collected_data, unit = :s; csv = nothing,
 end
 
 
+function plot_size_runtime(
+    classifier,
+    collected_data;
+    unit = :s,
+    label = "",
+    csv = nothing,
+    kwargs...
+)
+    plot_runtime(
+        classifier,
+        collected_data;
+        x = :N,
+        xlabel = "system size",
+        label,
+        unit,
+        csv,
+        kwargs...
+    )
+end
+
+
 function plot_scaling(classifier, scaling_data; csv = nothing, kwargs...)
     keys = Symbol[]
-    plot_data = Dict{Symbol, Dict{Symbol,Any}}()
+    plot_data = Dict{Symbol,Dict{Symbol,Any}}()
     for row in scaling_data
         key = classifier(row)
         if !haskey(plot_data, key)
-            plot_data[key] = Dict(:mvp_per_timestep => Float64[], :spectral_envelope => Float64[])
+            plot_data[key] =
+                Dict(:mvp_per_timestep => Float64[], :spectral_envelope => Float64[])
             push!(keys, key)
         end
         push!(
@@ -236,6 +268,7 @@ function plot_overhead(overhead_data; csv = nothing, marker = true, label = "", 
         xlabel = "system size",
         ylabel = "overhead (runtime percent)",
         label,
+        ylim = (0, 100),
         kwargs...
     )
 end

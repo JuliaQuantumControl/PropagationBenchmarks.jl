@@ -13,7 +13,7 @@
 #     name: julia-1.11
 # ---
 
-# # Benchmarks for `Cheby` on dense matrices (in-place)
+# # Benchmarks for `Cheby` on dense matrices (not-in-place)
 
 using QuantumPropagators: Cheby
 
@@ -37,7 +37,7 @@ PropagationBenchmarks.info()
 
 # +
 projectdir(path...) = joinpath(@__DIR__, path...)
-datadir(path...) = projectdir("data", "A01_01_Cheby_InPlace_Dense", path...)
+datadir(path...) = projectdir("data", "A02_01_Cheby_NotInPlace_Dense", path...)
 mkpath(datadir())
 
 SYSTEMS_CACHE = Dict();
@@ -63,7 +63,8 @@ SYSTEM_PARAMETERS = params(
     nt = 1001,
 );
 
-BENCHMARK_PARAMETERS = params(method = Cheby, cheby_coeffs_limit = Vary(1e-15, 1e-8));
+BENCHMARK_PARAMETERS =
+    params(method = Cheby, inplace = false, cheby_coeffs_limit = Vary(1e-15, 1e-8));
 
 size_trial_data = run_or_load(datadir("benchmark_size_trials.jld2"); force = FORCE) do
     run_benchmarks(;
@@ -94,7 +95,7 @@ size_runtime_data = merge(size_trial_data, size_timing_data)
 plot_size_runtime(
     size_runtime_data;
     label = "{key} precision",
-    csv = datadir("cheby_inplace_dense_runtime_size_{key}.csv")
+    csv = datadir("cheby_notinplace_dense_runtime_size_{key}.csv")
 ) do row
     if row[:cheby_coeffs_limit] == 1e-15
         return :high
@@ -121,9 +122,10 @@ SYSTEM_PARAMETERS = params(
     nt = 1001,
 );
 
-EXACT_SOLUTION_PARAMETERS = params(method = Cheby, cheby_coeffs_limit = 1e-15,);
+EXACT_SOLUTION_PARAMETERS =
+    params(method = Cheby, inplace = false, cheby_coeffs_limit = 1e-15,);
 
-BENCHMARK_PARAMETERS = params(method = Cheby, precision = PRECISION,);
+BENCHMARK_PARAMETERS = params(method = Cheby, inplace = false, precision = PRECISION,);
 
 prec_trial_data = run_or_load(datadir("benchmark_prec_trials.jld2"); force = FORCE) do
     run_benchmarks(;
@@ -168,8 +170,8 @@ plot_prec_runtimes(
     [1000, 100, 10];
     units = Dict(1000 => :s, 100 => :ms, 10 => :ms),
     size = (600, 600),
-    plot_title = "Runtime for in-place Cheby on dense matrices",
-    csv = datadir("cheby_inplace_dense_runtime_N={N}.csv"),
+    plot_title = "Runtime for not-in-place Cheby on dense matrices",
+    csv = datadir("cheby_notinplace_dense_runtime_N={N}.csv"),
 )
 
 
@@ -196,6 +198,7 @@ scaling_data = run_or_load(datadir("benchmark_scaling.jld2"); force = FORCE) do
         ),
         benchmark_parameters = params(
             method = Cheby,
+            inplace = false,
             cheby_coeffs_limit = Vary(1e-15, 1e-8)
         ),
         generate_benchmark = generate_timing_data,
@@ -244,7 +247,7 @@ overhead_data = run_or_load(datadir("benchmark_overhead.jld2"); force = FORCE) d
             dt = 1.0,
             nt = 1001,
         ),
-        benchmark_parameters = params(method = Cheby),
+        benchmark_parameters = params(method = Cheby, inplace = false),
         generate_benchmark = generate_timing_data,
         systems_cache = SYSTEMS_CACHE,
     )
@@ -257,6 +260,6 @@ overhead_data
 
 plot_overhead(
     overhead_data;
-    csv = datadir("cheby_inplace_dense_overhead.csv"),
-    plot_title = "Overhead for in-place Cheby on dense matrices",
+    csv = datadir("cheby_notinplace_dense_overhead.csv"),
+    plot_title = "Overhead for not-in-place Cheby on dense matrices",
 )
